@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffc2d9">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="용돈기록장">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>귀요미 용돈 기록장</title>
+<style>
+:root{--pink:#ffc2d9;--pink2:#ffe3ee;--pink3:#fff5f9;--deep:#ff7fae;--text:#6b3a4e;--line:#ffd3e3}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--pink3);color:var(--text);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;padding-bottom:40px}
+.app{max-width:480px;margin:0 auto;padding:12px}
+header{display:flex;align-items:center;justify-content:space-between;background:var(--pink);border-radius:22px;padding:12px 14px;box-shadow:0 3px 0 #ffa9c8}
+header h1{font-size:18px;margin:0}
+button{font-family:inherit;border:none;border-radius:14px;padding:8px 12px;background:var(--deep);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+button.ghost{background:var(--pink2);color:var(--text)}
+button.small{padding:5px 9px;font-size:12px;border-radius:10px}
+button.danger{background:#ff9aa8}
+.tabs{display:flex;gap:6px;margin:12px 0 8px}
+.tabs button{flex:1;background:var(--pink2);color:var(--text);padding:10px 4px}
+.tabs button.on{background:var(--deep);color:#fff;box-shadow:0 3px 0 #e85c92}
+.monthbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:2px solid var(--line);border-radius:18px;padding:6px 8px;margin-bottom:10px}
+.monthbar b{font-size:16px}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:15px}
+input,select{font-family:inherit;font-size:15px;border:2px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff;color:var(--text);width:100%;min-width:0}
+input:focus,select:focus{outline:none;border-color:var(--deep)}
+.row{display:flex;gap:6px;margin-bottom:6px}
+.row>*{flex:1}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.sum div{background:var(--pink2);border-radius:14px;padding:8px;text-align:center;font-size:13px}
+.sum b{display:block;font-size:16px;margin-top:2px}
+.sum .bal{grid-column:1/3;background:var(--pink);font-size:14px}
+.sum .bal b{font-size:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--pink2);padding:6px 3px;font-weight:600}
+td{padding:6px 3px;border-bottom:1px dashed var(--line);text-align:center;vertical-align:middle}
+th:first-child{border-radius:10px 0 0 10px}th:last-child{border-radius:0 10px 10px 0}
+.in{color:#e0457f;font-weight:700}.out{color:#5a7fd6;font-weight:700}
+.empty{text-align:center;color:#c98aa5;padding:14px}
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
+.cell{aspect-ratio:1;background:var(--pink2);border:2px dashed var(--pink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;color:#ffc2d9}
+.cell.on{background:#fff7c9;border:2px solid #ffd84d;color:inherit}
+.coupon{background:linear-gradient(135deg,#fff7c9,#ffe3ee);border:3px dashed var(--deep);border-radius:18px;padding:12px;text-align:center;margin-top:8px}
+.coupon .big{font-size:18px;font-weight:800;margin:4px 0}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.weeks{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px}
+.weeks button{white-space:nowrap;background:var(--pink2);color:var(--text);font-size:13px}
+.weeks button.on{background:var(--deep);color:#fff}
+.wk td{padding:4px 2px}
+.wk input[type=number]{padding:4px 2px;text-align:center;font-size:13px;width:100%}
+.wk input[type=checkbox]{width:20px;height:20px;accent-color:var(--deep);margin:0 0 3px}
+.wk .cellbox{display:flex;flex-direction:column;align-items:center}
+.wk .subj{text-align:left;font-weight:700;font-size:12px;padding-left:2px;word-break:keep-all}
+.hint{font-size:12px;color:#b9809a;margin-top:6px}
+.hide{display:none}
+.footer{display:flex;gap:6px}.footer>*{flex:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🐰 귀요미 용돈 기록장 🌸</h1>
+    <button class="ghost small" onclick="resetAll()">초기화</button>
+  </header>
+
+  <div class="tabs">
+    <button id="tb-money" class="on" onclick="showTab('money')">💰 용돈기록</button>
+    <button id="tb-sticker" onclick="showTab('sticker')">⭐ 스티커판</button>
+    <button id="tb-week" onclick="showTab('week')">📚 주간 미션</button>
+  </div>
+
+  <div class="monthbar">
+    <button class="ghost small" onclick="moveMonth(-1)">◀ 이전달</button>
+    <b id="monthLabel"></b>
+    <button class="ghost small" onclick="moveMonth(1)">다음달 ▶</button>
+  </div>
+
+  <!-- 용돈기록 -->
+  <section id="tab-money">
+    <div class="sum">
+      <div>🎀 지난달에서 넘어온 돈<b id="sCarry">0원</b></div>
+      <div>💖 이번 달 수입<b id="sIn">0원</b></div>
+      <div>🛍️ 이번 달 지출<b id="sOut">0원</b></div>
+      <div>🐷 이번 달 변화<b id="sDiff">0원</b></div>
+      <div class="bal">🍓 남은 잔액 (다음 달로 이월)<b id="sBal">0원</b></div>
+    </div>
+
+    <div class="card">
+      <h3 id="formTitle">✏️ 새 기록 쓰기</h3>
+      <div class="row">
+        <select id="fType"><option value="in">💖 수입</option><option value="out">🛍️ 지출</option></select>
+        <input type="date" id="fDate">
+      </div>
+      <div class="row">
+        <input type="text" id="fDesc" placeholder="내용 (예: 세뱃돈, 간식)">
+        <input type="number" id="fAmt" placeholder="금액(원)" inputmode="numeric" min="0">
+      </div>
+      <div class="row">
+        <button id="fSave" onclick="saveRecord()">➕ 추가하기</button>
+        <button id="fCancel" class="ghost hide" onclick="cancelEdit()">취소</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📒 내역</h3>
+      <table>
+        <thead><tr><th>날짜</th><th>구분</th><th>내용</th><th>금액</th><th></th></tr></thead>
+        <tbody id="recBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>💾 백업</h3>
+      <div class="footer">
+        <button class="ghost" onclick="backupSave()">백업 파일 저장</button>
+        <button class="ghost" onclick="document.getElementById('fileIn').click()">백업 불러오기</button>
+      </div>
+      <input type="file" id="fileIn" accept=".json,application/json" class="hide" onchange="backupLoad(event)">
+      <div class="hint">스티커판·주간 미션까지 모두 한 파일에 저장돼요.</div>
+    </div>
+  </section>
+
+  <!-- 스티커판 -->
+  <section id="tab-sticker" class="hide">
+    <div class="card">
+      <h3>🌟 칭찬 미션 추가</h3>
+      <div class="row"><input type="text" id="mName" placeholder="미션 (예: 숙제 다 하기)"></div>
+      <div class="row"><input type="text" id="mReward" placeholder="보상 쿠폰 내용 (예: 떡볶이 먹기)"></div>
+      <button onclick="addMission()">➕ 미션 추가</button>
+    </div>
+    <div id="missionList"></div>
+    <div class="hint" style="text-align:center">스티커판은 달과 상관없이 계속 모여요 ⭐</div>
+  </section>
+
+  <!-- 주간 미션 -->
+  <section id="tab-week" class="hide">
+    <div class="card">
+      <h3>📚 과목 추가</h3>
+      <div class="row">
+        <input type="text" id="subjName" placeholder="과목 (예: 수학)">
+        <button style="flex:0 0 auto" onclick="addSubject()">➕ 추가</button>
+      </div>
+    </div>
+    <div class="weeks" id="weekBtns"></div>
+    <div class="card">
+      <h3 id="weekTitle">주간 공부 체크</h3>
+      <div id="weekTable"></div>
+      <div class="hint">공부한 쪽수를 쓰고 ✔ 체크해요. 칸 아래 숫자는 날짜예요.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const KEY = 'yongdon_kiroklog_v1';
+const EMPTY = () => ({records:[], missions:[], subjects:[], weekly:{}});
+let S = load();
+let cur = (() => { const n = new Date(); return {y:n.getFullYear(), m:n.getMonth()+1}; })();
+let editId = null;
+let weekIdx = 0;
+
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(KEY)); if(d) return Object.assign(EMPTY(), d); }catch(e){}
+  return EMPTY();
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ alert('저장 공간에 문제가 있어요. 백업 파일을 저장해 주세요.'); }
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const won = n => (n<0?'-':'') + Math.abs(n).toLocaleString('ko-KR') + '원';
+const pad = n => String(n).padStart(2,'0');
+const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const monthStart = () => cur.y+'-'+pad(cur.m)+'-01';
+const monthEnd = () => cur.y+'-'+pad(cur.m)+'-'+pad(new Date(cur.y,cur.m,0).getDate());
+
+/* 탭 */
+function showTab(t){
+  ['money','sticker','week'].forEach(k=>{
+    document.getElementById('tab-'+k).classList.toggle('hide', k!==t);
+    document.getElementById('tb-'+k).classList.toggle('on', k===t);
+  });
+  if(t==='week') renderWeek();
+}
+function moveMonth(d){
+  cur.m += d;
+  if(cur.m<1){cur.m=12;cur.y--} if(cur.m>12){cur.m=1;cur.y++}
+  weekIdx = 0; cancelEdit(); renderAll();
+}
+
+/* 용돈기록 */
+function setDefaultDate(){
+  const t = new Date(), ts = iso(t);
+  document.getElementById('fDate').value = (ts>=monthStart() && ts<=monthEnd()) ? ts : monthStart();
+}
+function saveRecord(){
+  const type = fType.value, date = fDate.value, desc = fDesc.value.trim(), amt = Math.round(Number(fAmt.value));
+  if(!date){alert('날짜를 골라 주세요 📅');return}
+  if(!desc){alert('내용을 써 주세요 ✏️');return}
+  if(!(amt>0)){alert('금액을 1원 이상 써 주세요 💰');return}
+  if(editId){
+    const r = S.records.find(x=>x.id===editId);
+    if(r) Object.assign(r,{type,date,desc,amt});
+  } else S.records.push({id:uid(),type,date,desc,amt});
+  save();
+  const [y,m] = date.split('-').map(Number); cur = {y,m};
+  cancelEdit(); renderAll();
+}
+function editRecord(id){
+  const r = S.records.find(x=>x.id===id); if(!r) return;
+  editId = id;
+  fType.value=r.type; fDate.value=r.date; fDesc.value=r.desc; fAmt.value=r.amt;
+  formTitle.textContent='🛠️ 기록 고치기'; fSave.textContent='💾 수정 저장'; fCancel.classList.remove('hide');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelEdit(){
+  editId=null; fDesc.value=''; fAmt.value='';
+  formTitle.textContent='✏️ 새 기록 쓰기'; fSave.textContent='➕ 추가하기'; fCancel.classList.add('hide');
+  setDefaultDate();
+}
+function delRecord(id){
+  if(!confirm('이 기록을 지울까요? 🗑️')) return;
+  S.records = S.records.filter(x=>x.id!==id);
+  if(editId===id) cancelEdit();
+  save(); renderAll();
+}
+function renderMoney(){
+  const ms=monthStart(), me=monthEnd();
+  let carry=0, inc=0, out=0;
+  S.records.forEach(r=>{
+    const v = r.type==='in'? r.amt : -r.amt;
+    if(r.date<ms) carry+=v;
+    else if(r.date<=me){ if(r.type==='in') inc+=r.amt; else out+=r.amt; }
+  });
+  sCarry.textContent=won(carry); sIn.textContent=won(inc); sOut.textContent=won(out);
+  sDiff.textContent=won(inc-out); sBal.textContent=won(carry+inc-out);
+  const list = S.records.filter(r=>r.date>=ms && r.date<=me).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  recBody.innerHTML = list.length ? list.map(r=>`
+    <tr>
+      <td>${r.date.slice(5).replace('-','/')}</td>
+      <td>${r.type==='in'?'💖':'🛍️'}</td>
+      <td style="text-align:left">${esc(r.desc)}</td>
+      <td class="${r.type==='in'?'in':'out'}">${r.type==='in'?'+':'-'}${r.amt.toLocaleString('ko-KR')}</td>
+      <td style="white-space:nowrap">
+        <button class="ghost small" onclick="editRecord('${r.id}')">수정</button>
+        <button class="danger small" onclick="delRecord('${r.id}')">삭제</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">이 달에는 아직 기록이 없어요 🌱</td></tr>';
+}
+
+/* 백업 */
+function backupSave(){
+  const blob = new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '용돈기록장_백업_'+iso(new Date())+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function backupLoad(e){
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const d = JSON.parse(rd.result);
+      if(!d || !Array.isArray(d.records)) throw new Error();
+      if(!confirm('지금 데이터가 백업 파일 내용으로 바뀌어요. 계속할까요?')) return;
+      S = Object.assign(EMPTY(), d); save(); weekIdx=0; cancelEdit(); renderAll();
+      alert('불러오기 완료! 🎉');
+    }catch(err){ alert('올바른 백업 파일이 아니에요 😢'); }
+  };
+  rd.readAsText(f); e.target.value='';
+}
+function resetAll(){
+  if(!confirm('정말 모든 기록을 지울까요? (되돌릴 수 없어요)')) return;
+  if(!confirm('마지막으로 한 번 더! 백업은 해 두었나요? 지우려면 [확인]')) return;
+  S = EMPTY(); save(); weekIdx=0; cancelEdit(); renderAll();
+}
+
+/* 스티커판 */
+function addMission(){
+  const name = mName.value.trim(), reward = mReward.value.trim();
+  if(!name){alert('미션 이름을 써 주세요 ⭐');return}
+  S.missions.push({id:uid(),name,reward:reward||'멋진 선물',stars:0,used:0});
+  mName.value=''; mReward.value=''; save(); renderStickers();
+}
+function giveSticker(id){
+  const m = S.missions.find(x=>x.id===id); if(!m||m.stars>=10) return;
+  m.stars++; save(); renderStickers();
+  if(m.stars===10) setTimeout(()=>alert('🎉 스티커 10개 완성! 보상 쿠폰이 나왔어요!'),50);
+}
+function takeSticker(id){
+  const m = S.missions.find(x=>x.id===id); if(!m||m.stars<=0) return;
+  m.stars--; save(); renderStickers();
+}
+function setReward(id,v){
+  const m = S.missions.find(x=>x.id===id); if(!m) return;
+  m.reward = v.trim() || '멋진 선물'; save(); renderStickers();
+}
+function useCoupon(id){
+  const m = S.missions.find(x=>x.id===id); if(!m) return;
+  if(!confirm('쿠폰을 사용하고 새 스티커판을 시작할까요? 🎁')) return;
+  m.stars=0; m.used=(m.used||0)+1; save(); renderStickers();
+}
+function delMission(id){
+  if(!confirm('이 미션과 스티커를 지울까요?')) return;
+  S.missions = S.missions.filter(x=>x.id!==id); save(); renderStickers();
+}
+function renderStickers(){
+  missionList.innerHTML = S.missions.length ? S.missions.map(m=>{
+    let cells=''; for(let i=0;i<10;i++) cells += `<div class="cell ${i<m.stars?'on':''}">${i<m.stars?'⭐':'☆'}</div>`;
+    const full = m.stars>=10;
+    return `<div class="card">
+      <div class="mhead"><h3 style="margin:0">🌟 ${esc(m.name)}</h3><button class="danger small" onclick="delMission('${m.id}')">삭제</button></div>
+      <div class="hint">모은 별 ${m.stars}/10 · 받은 쿠폰 ${m.used||0}장</div>
+      <div class="board">${cells}</div>
+      <div class="row">
+        <button onclick="giveSticker('${m.id}')" ${full?'disabled style="opacity:.5"':''}>⭐ 스티커 주기</button>
+        <button class="ghost" onclick="takeSticker('${m.id}')">되돌리기</button>
+      </div>
+      <div class="row"><input type="text" value="${esc(m.reward)}" placeholder="보상 쿠폰 내용" onchange="setReward('${m.id}',this.value)"></div>
+      ${full?`<div class="coupon">🎁 보상 쿠폰 🎁<div class="big">${esc(m.reward)}</div><button onclick="useCoupon('${m.id}')">쿠폰 사용하고 새 판 시작</button></div>`:''}
+    </div>`;
+  }).join('') : '<div class="empty">미션을 추가하고 별을 모아 보세요 ⭐</div>';
+}
+
+/* 주간 미션 */
+function weeksOfMonth(){
+  const first = new Date(cur.y,cur.m-1,1), last = new Date(cur.y,cur.m,0);
+  const dow = (first.getDay()+6)%7;
+  let mon = new Date(cur.y,cur.m-1,1-dow);
+  const arr=[];
+  while(mon<=last){ arr.push(new Date(mon)); mon.setDate(mon.getDate()+7); }
+  return arr;
+}
+function addSubject(){
+  const n = subjName.value.trim(); if(!n){alert('과목 이름을 써 주세요 📚');return}
+  S.subjects.push({id:uid(),name:n}); subjName.value=''; save(); renderWeek();
+}
+function delSubject(id){
+  if(!confirm('이 과목과 체크 기록을 지울까요?')) return;
+  S.subjects = S.subjects.filter(x=>x.id!==id);
+  Object.keys(S.weekly).forEach(k=>{ if(k.startsWith(id+'|')) delete S.weekly[k]; });
+  save(); renderWeek();
+}
+function wkSet(key,field,val){
+  const o = S.weekly[key] || {done:false,pages:''};
+  o[field]=val;
+  if(!o.done && (o.pages===''||o.pages==null)) delete S.weekly[key]; else S.weekly[key]=o;
+  save(); updateTotals();
+}
+function setWeekIdx(i){ weekIdx=i; renderWeek(); }
+function rowTotal(sid,monISO){
+  let t=0; for(let d=0;d<5;d++){ const o=S.weekly[sid+'|'+monISO+'|'+d]; if(o&&o.pages!=='') t+=Number(o.pages)||0; } return t;
+}
+function updateTotals(){
+  const wks = weeksOfMonth(); const mon = wks[weekIdx]; if(!mon) return;
+  const mi = iso(mon);
+  S.subjects.forEach(s=>{ const el=document.getElementById('tot-'+s.id); if(el) el.textContent=rowTotal(s.id,mi)+'쪽'; });
+}
+function renderWeek(){
+  const wks = weeksOfMonth();
+  if(weekIdx>=wks.length) weekIdx=0;
+  weekBtns.innerHTML = wks.map((m,i)=>`<button class="${i===weekIdx?'on':''}" onclick="setWeekIdx(${i})">${i+1}주차</button>`).join('');
+  const mon = wks[weekIdx], fri = new Date(mon); fri.setDate(fri.getDate()+4);
+  weekTitle.textContent = `📚 ${weekIdx+1}주차 (${mon.getMonth()+1}/${mon.getDate()} ~ ${fri.getMonth()+1}/${fri.getDate()})`;
+  if(!S.subjects.length){ weekTable.innerHTML='<div class="empty">위에서 과목을 추가해 보세요 📖</div>'; return; }
+  const mi = iso(mon), names=['월','화','수','목','금'];
+  const dates = names.map((_,d)=>{const x=new Date(mon);x.setDate(x.getDate()+d);return (x.getMonth()+1)+'/'+x.getDate();});
+  let h = '<table class="wk"><thead><tr><th>과목</th>'+names.map((n,d)=>`<th>${n}<br><span style="font-weight:400;font-size:10px">${dates[d]}</span></th>`).join('')+'<th>합계</th></tr></thead><tbody>';
+  S.subjects.forEach(s=>{
+    h += `<tr><td class="subj">${esc(s.name)}<br><button class="danger small" style="padding:2px 6px;font-size:10px;margin-top:3px" onclick="delSubject('${s.id}')">삭제</button></td>`;
+    for(let d=0;d<5;d++){
+      const key = s.id+'|'+mi+'|'+d, o = S.weekly[key]||{done:false,pages:''};
+      h += `<td><div class="cellbox"><input type="checkbox" ${o.done?'checked':''} onchange="wkSet('${key}','done',this.checked)"><input type="number" inputmode="numeric" min="0" placeholder="쪽" value="${esc(o.pages)}" onchange="wkSet('${key}','pages',this.value)"></div></td>`;
+    }
+    h += `<td id="tot-${s.id}" style="font-weight:700">${rowTotal(s.id,mi)}쪽</td></tr>`;
+  });
+  weekTable.innerHTML = h+'</tbody></table>';
+}
+
+/* 전체 */
+function renderAll(){
+  monthLabel.textContent = cur.y+'년 '+cur.m+'월';
+  renderMoney(); renderStickers(); renderWeek();
+  if(!editId) setDefaultDate();
+}
+renderAll();
+
+/* PWA: 서비스 워커 등록 (https 또는 localhost에서만 동작) */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
